@@ -52,6 +52,22 @@ result = fit(objective, initial; backend = OptimBackend(:bfgs))
 result.minimizer.signal.mu
 ```
 
+Bounds and fixed parameters use flat parameter order for now:
+
+```julia
+result = fit(
+    objective,
+    initial;
+    backend = OptimBackend(:bfgs),
+    bounds = ([0.0, -Inf, -10.0], [10.0, Inf, 10.0]),
+    fixed = [false, true, false],
+)
+```
+
+For `OptimBackend`, bounds are handled with `Fminbox` by default. Set
+`bound_strategy = :transform` to optimize unconstrained raw parameters that are
+mapped into the bounded physical space.
+
 ## Current API
 
 - `fit(objective, initial; backend=OptimBackend(:lbfgs), ...)`

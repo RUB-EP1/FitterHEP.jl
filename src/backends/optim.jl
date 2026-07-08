@@ -27,6 +27,9 @@ function _fit(
     initial;
     iterations::Integer = 10_000,
     autodiff = nothing,
+    fixed = nothing,
+    bounds = nothing,
+    bound_strategy::Symbol = :native,
     covariance = :none,
     errordef::Real = 0.5,
     inversion::Symbol = :auto,
@@ -42,7 +45,8 @@ function _fit(
 )
     adapter = _parameter_adapter(initial)
     x0 = adapter.x0
-    objective_flat(x) = objective(adapter.rebuild(x))
+    problem = _active_parameter_problem(x0; fixed, bounds, bound_strategy)
+    objective_active(z) = objective(adapter.rebuild(problem.expand(z)))
     options = _optim_options(;
         iterations,
         g_tol,
@@ -56,20 +60,37 @@ function _fit(
         callback,
     )
 
-    result = if autodiff === nothing
-        optimize(objective_flat, x0, backend.method, options)
-    else
-        optimize(objective_flat, x0, backend.method, options; autodiff)
+    if isempty(problem.active)
+        xmin = x0
+        fmin = Float64(objective(adapter.rebuild(xmin)))
+        diagnostics = FitDiagnostics(status = :converged, message = "all parameters are fixed", iterations = 0, nfcn = 1)
+        return FitResult(backend, adapter.rebuild(xmin), fmin, true, nothing, nothing, nothing, nothing, diagnostics)
     end
-    xmin = collect(Float64, Optim.minimizer(result))
+
+    result = if problem.has_bounds
+        if autodiff === nothing
+            optimize(objective_active, problem.zlower, problem.zupper, problem.z0, Fminbox(backend.method), options)
+        else
+            optimize(objective_active, problem.zlower, problem.zupper, problem.z0, Fminbox(backend.method), options; autodiff)
+        end
+    elseif autodiff === nothing
+        optimize(objective_active, problem.z0, backend.method, options)
+    else
+        optimize(objective_active, problem.z0, backend.method, options; autodiff)
+    end
+    zmin = collect(Float64, Optim.minimizer(result))
+    xmin = problem.expand(zmin)
     fmin = Float64(Optim.minimum(result))
-    hess, cov, err, corr, valid_cov = _maybe_covariance(
-        objective_flat,
-        xmin;
+    hess, active_cov, active_err, active_corr, valid_cov = _maybe_covariance(
+        objective_active,
+        zmin;
         covariance_method = covariance,
         errordef,
         inversion,
     )
+    cov = _embed_active_matrix(active_cov, problem.active, length(x0))
+    err = cov === nothing ? nothing : _errors_from_covariance(cov)
+    corr = cov === nothing ? nothing : _correlation_from_covariance(cov)
     diagnostics = FitDiagnostics(
         status = Optim.converged(result) ? :converged : :not_converged,
         message = "",

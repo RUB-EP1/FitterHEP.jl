@@ -15,28 +15,10 @@ function _default_step_sizes(x0::AbstractVector)
     return [max(0.1 * abs(x), 0.1) for x in x0]
 end
 
-function _normalize_vector_option(value, n::Integer, name::AbstractString)
-    value === nothing && return nothing
-    length(value) == n || throw(ArgumentError("$name must have length $n"))
-    return collect(value)
-end
-
 function _normalize_names(names, n::Integer)
     values = names === nothing ? _default_names(n) : collect(names)
     length(values) == n || throw(ArgumentError("names must have length $n"))
     return string.(values)
-end
-
-function _normalize_bounds(bounds, n::Integer)
-    bounds === nothing && return nothing
-    if bounds isa Tuple && length(bounds) == 2 && all(x -> x isa AbstractVector, bounds)
-        lower, upper = bounds
-        length(lower) == n || throw(ArgumentError("lower bounds must have length $n"))
-        length(upper) == n || throw(ArgumentError("upper bounds must have length $n"))
-        return collect(zip(lower, upper))
-    end
-    length(bounds) == n || throw(ArgumentError("bounds must have length $n"))
-    return collect(bounds)
 end
 
 function _minuit_status(m)
@@ -70,8 +52,10 @@ function _fit(
     n = length(x0)
     param_names = _normalize_names(something(names, adapter.names), n)
     errors0 = something(_normalize_vector_option(step_sizes, n, "step_sizes"), _default_step_sizes(x0))
-    fixed_parameters = something(_normalize_vector_option(fixed, n, "fixed"), fill(false, n))
-    limits = _normalize_bounds(bounds, n)
+    fixed_parameters = _normalize_fixed(fixed, n)
+    lower, upper = _normalize_bounds(bounds, n)
+    _validate_bounds(x0, lower, upper)
+    limits = bounds === nothing ? nothing : collect(zip(lower, upper))
 
     f_array(raw) = objective(adapter.rebuild(raw))
     active_errordef = errordef === nothing ? backend.errordef : Float64(errordef)

@@ -92,6 +92,42 @@ using Test
         @test result.minimizer.background.slope ≈ -0.5 atol = 1e-7
     end
 
+    @testset "OptimBackend bounds and fixed parameters" begin
+        objective(x) = (x[1] + 2.0)^2 + (x[2] - 3.0)^2 + (x[3] - 1.0)^2
+        result = fit(
+            objective,
+            [0.5, 10.0, 0.0];
+            backend = OptimBackend(:bfgs),
+            bounds = ([0.0, -10.0, -10.0], [5.0, 10.0, 10.0]),
+            fixed = [false, true, false],
+            covariance = :finite_diff,
+            errordef = 1.0,
+        )
+
+        @test result.converged
+        @test result.minimizer[1] ≈ 0.0 atol = 1e-5
+        @test result.minimizer[2] ≈ 10.0 atol = 1e-12
+        @test result.minimizer[3] ≈ 1.0 atol = 1e-6
+        @test covariance(result)[2, 2] == 0.0
+        @test errors(result)[2] == 0.0
+    end
+
+    @testset "OptimBackend transform bounds" begin
+        initial = (x = 0.25, y = 2.0)
+        objective(p) = (p.x - 0.8)^2 + (p.y - 1.5)^2
+        result = fit(
+            objective,
+            initial;
+            backend = OptimBackend(:bfgs),
+            bounds = ([0.0, 1.0], [1.0, 3.0]),
+            bound_strategy = :transform,
+        )
+
+        @test result.converged
+        @test result.minimizer.x ≈ 0.8 atol = 1e-6
+        @test result.minimizer.y ≈ 1.5 atol = 1e-6
+    end
+
     @testset "quadratic fit with covariance" begin
         μ = [1.5, -2.0]
         σ = [2.0, 3.0]
