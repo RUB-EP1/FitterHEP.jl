@@ -39,7 +39,8 @@ end
 
 Minimize `objective` starting from `initial` with the selected backend.
 
-Phase 1 supports vector-like numeric parameters through the `OptimBackend`.
+Vector-like numeric parameters are supported through `OptimBackend` and
+`MinuitBackend`.
 """
 function fit(objective, initial; backend::AbstractFitBackend = OptimBackend(:lbfgs), kwargs...)
     return _fit(backend, objective, initial; kwargs...)
@@ -50,4 +51,3 @@ function _fit end
 covariance(result::FitResult) = result.covariance
 errors(result::FitResult) = result.errors
 correlation(result::FitResult) = result.correlation
-

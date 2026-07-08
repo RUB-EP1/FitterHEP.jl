@@ -35,7 +35,7 @@ end
 
 Compute a Hessian-derived covariance summary at `point`.
 
-For Phase 1, `method=:finite_diff` is supported.
+For standalone objective functions, `method=:finite_diff` is supported.
 """
 function hesse(
     objective,
@@ -51,6 +51,11 @@ function hesse(
     return (hessian = H, covariance = C, errors = _errors_from_covariance(C), correlation = _correlation_from_covariance(C))
 end
 
+function _covariance_summary(C::AbstractMatrix)
+    cov = Matrix{Float64}(C)
+    return (covariance = cov, errors = _errors_from_covariance(cov), correlation = _correlation_from_covariance(cov))
+end
+
 function _maybe_covariance(objective, point; covariance_method, errordef, inversion)
     covariance_method in (:none, nothing, false) && return (nothing, nothing, nothing, nothing, false)
     method = covariance_method === :auto ? :finite_diff : covariance_method
@@ -61,4 +66,3 @@ function _maybe_covariance(objective, point; covariance_method, errordef, invers
         return (nothing, nothing, nothing, nothing, false)
     end
 end
-

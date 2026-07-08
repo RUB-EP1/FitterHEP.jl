@@ -2,10 +2,12 @@ module FitterHEP
 
 using FiniteDiff
 using LinearAlgebra
+using Minuit2
 using Optim
 
 export AbstractFitBackend,
     OptimBackend,
+    MinuitBackend,
     FitResult,
     FitDiagnostics,
     fit,
@@ -17,5 +19,6 @@ export AbstractFitBackend,
 include("core.jl")
 include("covariance.jl")
 include("backends/optim.jl")
+include("backends/minuit.jl")
 
 end

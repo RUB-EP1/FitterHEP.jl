@@ -27,10 +27,25 @@ errors(result)
 correlation(result)
 ```
 
+The same objective can be minimized with Minuit/MIGRAD:
+
+```julia
+result = fit(
+    objective,
+    [0.0, 0.0];
+    backend = MinuitBackend(strategy = 1, tolerance = 0.1),
+    names = [:x, :y],
+    step_sizes = [0.1, 0.1],
+    covariance = :backend,
+    errordef = 1.0,
+)
+```
+
 ## Current API
 
 - `fit(objective, initial; backend=OptimBackend(:lbfgs), ...)`
 - `OptimBackend(:lbfgs)`, `OptimBackend(:bfgs)`, `OptimBackend(:nelder_mead)`
+- `MinuitBackend(; strategy=1, tolerance=0.1, ncall=0, iterate=5)`
 - `hesse(objective, point; method=:finite_diff, errordef=0.5)`
 - `covariance(result)`, `errors(result)`, `correlation(result)`
 
@@ -48,7 +63,6 @@ hand-written NLL and finite-difference covariance estimation.
 ## Roadmap
 
 - Minuit2 backend with an Optim-like interface
-- fixed parameters, bounds, and step sizes
 - support for `NamedTuple` and `ComponentArray` parameters
-- backend-native and fallback HESSE/covariance paths
+- fallback HESSE/covariance paths
 - X2VV-style benchmark examples

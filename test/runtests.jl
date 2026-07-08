@@ -11,6 +11,48 @@ using Test
         @test_throws ArgumentError OptimBackend(:unknown)
     end
 
+    @testset "MinuitBackend fit and HESSE" begin
+        μ = [1.5, -2.0]
+        σ = [2.0, 3.0]
+        objective(x) = sum(((x .- μ) ./ σ) .^ 2)
+
+        result = fit(
+            objective,
+            [0.0, 0.0];
+            backend = MinuitBackend(strategy = 1, tolerance = 0.1),
+            names = [:x, :y],
+            step_sizes = [0.2, 0.3],
+            covariance = :backend,
+            errordef = 1.0,
+        )
+
+        @test result.converged
+        @test result.minimizer ≈ μ atol = 1e-4
+        @test result.minimum ≈ 0.0 atol = 1e-8
+        @test covariance(result) ≈ Diagonal(σ .^ 2) rtol = 2e-2
+        @test errors(result) ≈ σ rtol = 2e-2
+        @test result.diagnostics.status == :converged
+        @test result.diagnostics.nfcn !== nothing
+        @test result.diagnostics.edm !== nothing
+        @test result.diagnostics.valid_covariance == true
+    end
+
+    @testset "MinuitBackend bounds and fixed parameters" begin
+        objective(x) = (x[1] - 2.0)^2 + (x[2] + 1.0)^2
+        result = fit(
+            objective,
+            [0.0, 5.0];
+            backend = MinuitBackend(),
+            bounds = ([0.0, -10.0], [10.0, 10.0]),
+            fixed = [false, true],
+            step_sizes = [0.2, 0.2],
+        )
+
+        @test result.converged
+        @test result.minimizer[1] ≈ 2.0 atol = 2e-4
+        @test result.minimizer[2] ≈ 5.0 atol = 1e-12
+    end
+
     @testset "quadratic fit with covariance" begin
         μ = [1.5, -2.0]
         σ = [2.0, 3.0]
