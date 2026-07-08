@@ -54,4 +54,12 @@ using Test
         @test h.covariance ≈ [1.0 0.0; 0.0 0.25] atol = 1e-5
         @test h.errors ≈ [1.0, 0.5] atol = 1e-5
     end
+
+    @testset "mass-fit example loads" begin
+        include(joinpath(@__DIR__, "..", "examples", "massfit_nll.jl"))
+        data = generate_mass_sample(100; seed = 7)
+        @test length(data) == 100
+        @test all(x -> 5.0 <= x <= 7.0, data)
+        @test isfinite(mass_nll(data, [5.28, log(0.06), log(1.0), 0.0]))
+    end
 end

@@ -34,6 +34,17 @@ correlation(result)
 - `hesse(objective, point; method=:finite_diff, errordef=0.5)`
 - `covariance(result)`, `errors(result)`, `correlation(result)`
 
+## Example
+
+Run the toy unbinned mass-fit example:
+
+```sh
+julia --project=. examples/massfit_nll.jl
+```
+
+The example fits a Gaussian signal plus exponential background mixture with a
+hand-written NLL and finite-difference covariance estimation.
+
 ## Roadmap
 
 - Minuit2 backend with an Optim-like interface
