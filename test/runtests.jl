@@ -1,4 +1,5 @@
 using FitterHEP
+using ComponentArrays
 using LinearAlgebra
 using Test
 
@@ -51,6 +52,44 @@ using Test
         @test result.converged
         @test result.minimizer[1] ≈ 2.0 atol = 2e-4
         @test result.minimizer[2] ≈ 5.0 atol = 1e-12
+    end
+
+    @testset "NamedTuple parameters with OptimBackend" begin
+        initial = (signal = (mu = 0.0, width = 2.0), background = (slope = 1.0,))
+        objective(p) = (p.signal.mu - 1.25)^2 + (p.signal.width - 0.5)^2 + (p.background.slope + 0.75)^2
+
+        result = fit(objective, initial; backend = OptimBackend(:bfgs), covariance = :finite_diff)
+
+        @test result.converged
+        @test result.minimizer isa NamedTuple
+        @test result.minimizer.signal.mu ≈ 1.25 atol = 1e-7
+        @test result.minimizer.signal.width ≈ 0.5 atol = 1e-7
+        @test result.minimizer.background.slope ≈ -0.75 atol = 1e-7
+        @test covariance(result) isa Matrix{Float64}
+    end
+
+    @testset "NamedTuple parameters with MinuitBackend" begin
+        initial = (x = 0.0, y = 0.0)
+        objective(p) = (p.x - 2.0)^2 + (p.y + 3.0)^2
+
+        result = fit(objective, initial; backend = MinuitBackend(), step_sizes = [0.2, 0.2])
+
+        @test result.converged
+        @test result.minimizer.x ≈ 2.0 atol = 2e-4
+        @test result.minimizer.y ≈ -3.0 atol = 2e-4
+    end
+
+    @testset "ComponentArray parameters with OptimBackend" begin
+        initial = ComponentArray(signal = [0.0, 2.0], background = (slope = 1.0,))
+        objective(p) = (p.signal[1] - 1.0)^2 + (p.signal[2] - 0.25)^2 + (p.background.slope + 0.5)^2
+
+        result = fit(objective, initial; backend = OptimBackend(:bfgs))
+
+        @test result.converged
+        @test result.minimizer isa ComponentArray
+        @test result.minimizer.signal[1] ≈ 1.0 atol = 1e-7
+        @test result.minimizer.signal[2] ≈ 0.25 atol = 1e-7
+        @test result.minimizer.background.slope ≈ -0.5 atol = 1e-7
     end
 
     @testset "quadratic fit with covariance" begin

@@ -40,7 +40,9 @@ function _fit(
     show_trace::Bool = false,
     callback = nothing,
 )
-    x0 = collect(Float64, initial)
+    adapter = _parameter_adapter(initial)
+    x0 = adapter.x0
+    objective_flat(x) = objective(adapter.rebuild(x))
     options = _optim_options(;
         iterations,
         g_tol,
@@ -55,14 +57,14 @@ function _fit(
     )
 
     result = if autodiff === nothing
-        optimize(objective, x0, backend.method, options)
+        optimize(objective_flat, x0, backend.method, options)
     else
-        optimize(objective, x0, backend.method, options; autodiff)
+        optimize(objective_flat, x0, backend.method, options; autodiff)
     end
     xmin = collect(Float64, Optim.minimizer(result))
     fmin = Float64(Optim.minimum(result))
     hess, cov, err, corr, valid_cov = _maybe_covariance(
-        objective,
+        objective_flat,
         xmin;
         covariance_method = covariance,
         errordef,
@@ -76,6 +78,5 @@ function _fit(
         valid_covariance = valid_cov,
         backend_status = result,
     )
-    return FitResult(backend, xmin, fmin, Optim.converged(result), cov, err, corr, result, diagnostics)
+    return FitResult(backend, adapter.rebuild(xmin), fmin, Optim.converged(result), cov, err, corr, result, diagnostics)
 end
-

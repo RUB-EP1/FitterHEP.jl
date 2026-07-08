@@ -1,5 +1,6 @@
 module FitterHEP
 
+using ComponentArrays
 using FiniteDiff
 using LinearAlgebra
 using Minuit2
@@ -17,6 +18,7 @@ export AbstractFitBackend,
     hesse
 
 include("core.jl")
+include("parameters.jl")
 include("covariance.jl")
 include("backends/optim.jl")
 include("backends/minuit.jl")

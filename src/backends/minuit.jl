@@ -65,14 +65,15 @@ function _fit(
     errordef = nothing,
     grad = nothing,
 )
-    x0 = collect(Float64, initial)
+    adapter = _parameter_adapter(initial)
+    x0 = adapter.x0
     n = length(x0)
-    param_names = _normalize_names(names, n)
+    param_names = _normalize_names(something(names, adapter.names), n)
     errors0 = something(_normalize_vector_option(step_sizes, n, "step_sizes"), _default_step_sizes(x0))
     fixed_parameters = something(_normalize_vector_option(fixed, n, "fixed"), fill(false, n))
     limits = _normalize_bounds(bounds, n)
 
-    f_array(raw) = objective(collect(raw))
+    f_array(raw) = objective(adapter.rebuild(raw))
     active_errordef = errordef === nothing ? backend.errordef : Float64(errordef)
     result_backend = MinuitBackend(
         strategy = backend.strategy,
@@ -128,5 +129,5 @@ function _fit(
         valid_covariance = valid_cov,
         backend_status = m,
     )
-    return FitResult(result_backend, xmin, fmin, m.is_valid, cov, err, corr, m, diagnostics)
+    return FitResult(result_backend, adapter.rebuild(xmin), fmin, m.is_valid, cov, err, corr, m, diagnostics)
 end

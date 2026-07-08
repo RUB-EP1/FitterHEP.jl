@@ -41,6 +41,17 @@ result = fit(
 )
 ```
 
+Initial parameters can also be structured. The optimizer still sees a flat
+vector internally, while the objective and result use the original shape:
+
+```julia
+initial = (signal = (mu = 0.0, sigma = 1.0), background = (slope = 0.0,))
+objective(p) = (p.signal.mu - 1.5)^2 + (p.background.slope + 0.2)^2
+
+result = fit(objective, initial; backend = OptimBackend(:bfgs))
+result.minimizer.signal.mu
+```
+
 ## Current API
 
 - `fit(objective, initial; backend=OptimBackend(:lbfgs), ...)`
@@ -63,6 +74,5 @@ hand-written NLL and finite-difference covariance estimation.
 ## Roadmap
 
 - Minuit2 backend with an Optim-like interface
-- support for `NamedTuple` and `ComponentArray` parameters
 - fallback HESSE/covariance paths
 - X2VV-style benchmark examples
