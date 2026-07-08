@@ -76,16 +76,24 @@ mapped into the bounded physical space.
 - `hesse(objective, point; method=:finite_diff, errordef=0.5)`
 - `covariance(result)`, `errors(result)`, `correlation(result)`
 
-## Example
+## Examples
 
-Run the toy unbinned mass-fit example:
+Run the toy examples:
 
 ```sh
+julia --project=. examples/switch_backends.jl
+julia --project=. examples/bounded_fraction_fit.jl
+julia --project=. examples/fixed_parameter_fit.jl
 julia --project=. examples/massfit_nll.jl
 ```
 
-The example fits a Gaussian signal plus exponential background mixture with a
-hand-written NLL and finite-difference covariance estimation.
+- `switch_backends.jl`: same structured objective with `OptimBackend` and
+  `MinuitBackend`.
+- `bounded_fraction_fit.jl`: bounded one-parameter likelihood fit with
+  `bound_strategy = :transform`.
+- `fixed_parameter_fit.jl`: chi-square line fit with one fixed parameter.
+- `massfit_nll.jl`: Gaussian signal plus exponential background mixture with a
+  hand-written NLL and finite-difference covariance estimation.
 
 ## Roadmap
 

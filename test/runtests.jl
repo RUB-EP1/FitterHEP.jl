@@ -3,6 +3,12 @@ using ComponentArrays
 using LinearAlgebra
 using Test
 
+function include_example(path)
+    mod = Module()
+    Base.include(mod, path)
+    return mod
+end
+
 @testset "FitterHEP" begin
     @testset "OptimBackend constructors" begin
         @test OptimBackend() isa OptimBackend
@@ -173,10 +179,23 @@ using Test
     end
 
     @testset "mass-fit example loads" begin
-        include(joinpath(@__DIR__, "..", "examples", "massfit_nll.jl"))
-        data = generate_mass_sample(100; seed = 7)
+        ex = include_example(joinpath(@__DIR__, "..", "examples", "massfit_nll.jl"))
+        data = ex.generate_mass_sample(100; seed = 7)
         @test length(data) == 100
         @test all(x -> 5.0 <= x <= 7.0, data)
-        @test isfinite(mass_nll(data, [5.28, log(0.06), log(1.0), 0.0]))
+        @test isfinite(ex.mass_nll(data, [5.28, log(0.06), log(1.0), 0.0]))
+    end
+
+    @testset "simple examples load" begin
+        switch_ex = include_example(joinpath(@__DIR__, "..", "examples", "switch_backends.jl"))
+        @test switch_ex.rosenbrock((x = 1.0, y = 1.0)) ≈ 0.0
+
+        bounded_ex = include_example(joinpath(@__DIR__, "..", "examples", "bounded_fraction_fit.jl"))
+        data = bounded_ex.generate_counting_sample(20; fraction = 0.4, seed = 11)
+        @test length(data) == 20
+        @test isfinite(bounded_ex.binomial_nll((fraction = 0.5,), data))
+
+        fixed_ex = include_example(joinpath(@__DIR__, "..", "examples", "fixed_parameter_fit.jl"))
+        @test isfinite(fixed_ex.line_chi2((intercept = 0.0, slope = 1.0)))
     end
 end
