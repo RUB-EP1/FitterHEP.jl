@@ -198,4 +198,11 @@ end
         fixed_ex = include_example(joinpath(@__DIR__, "..", "examples", "fixed_parameter_fit.jl"))
         @test isfinite(fixed_ex.line_chi2((intercept = 0.0, slope = 1.0)))
     end
+
+    @testset "docs files exist" begin
+        docs_dir = joinpath(@__DIR__, "..", "docs")
+        for file in ("README.md", "api.md", "parameters.md", "covariance.md", "examples.md", "limitations.md")
+            @test isfile(joinpath(docs_dir, file))
+        end
+    end
 end

@@ -76,6 +76,9 @@ mapped into the bounded physical space.
 - `hesse(objective, point; method=:finite_diff, errordef=0.5)`
 - `covariance(result)`, `errors(result)`, `correlation(result)`
 
+See [`docs/`](docs/README.md) for API details, parameter conventions,
+covariance conventions, examples, and current limitations.
+
 ## Examples
 
 Run the toy examples:
