@@ -205,4 +205,11 @@ end
             @test isfile(joinpath(docs_dir, file))
         end
     end
+
+    @testset "benchmark files exist" begin
+        benchmark_dir = joinpath(@__DIR__, "..", "benchmark")
+        for file in ("README.md", "common.jl", "quadratic.jl", "rosenbrock.jl", "bounded_fraction_toys.jl", "massfit_toys.jl", "make_tables.jl")
+            @test isfile(joinpath(benchmark_dir, file))
+        end
+    end
 end
