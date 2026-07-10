@@ -64,6 +64,17 @@ function _normalize_vector_option(value, n::Integer, name::AbstractString)
     return collect(value)
 end
 
+function _default_step_sizes(x0::AbstractVector)
+    return [max(0.1 * abs(x), 0.1) for x in x0]
+end
+
+function _normalize_step_sizes(step_sizes, x0::AbstractVector)
+    values = something(_normalize_vector_option(step_sizes, length(x0), "step_sizes"), _default_step_sizes(x0))
+    out = Float64.(values)
+    all(x -> isfinite(x) && x > 0, out) || throw(ArgumentError("step_sizes must contain positive finite values"))
+    return out
+end
+
 function _normalize_fixed(fixed, n::Integer)
     fixed === nothing && return fill(false, n)
     values = _normalize_vector_option(fixed, n, "fixed")

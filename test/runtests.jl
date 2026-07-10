@@ -1,6 +1,7 @@
 using FitterHEP
 using ComponentArrays
 using LinearAlgebra
+using Optim
 using Test
 
 function include_example(path)
@@ -156,6 +157,28 @@ end
         @test correlation(result) ≈ Matrix(I, 2, 2) atol = 1e-5
         @test result.diagnostics.status == :converged
         @test result.diagnostics.valid_covariance == true
+    end
+
+    @testset "default step sizes configure backend metrics" begin
+        objective(x) = (x[1] - 1.0)^2 / 4 + (x[2] + 2.0)^2 / 9
+
+        optim_result = fit(objective, [0.0, 0.0]; backend = OptimBackend(:bfgs), step_sizes = [2.0, 3.0])
+        optim_method = optim_result.raw_result.method
+        @test optim_method isa Optim.BFGS
+        @test optim_method.initial_invH([0.0, 0.0]) ≈ Diagonal([4.0, 9.0])
+
+        lbfgs_result = fit(objective, [0.0, 0.0]; backend = OptimBackend(:lbfgs), step_sizes = [2.0, 4.0])
+        lbfgs_method = lbfgs_result.raw_result.method
+        @test lbfgs_method isa Optim.LBFGS
+        @test lbfgs_method.P ≈ Diagonal([0.25, 0.0625])
+        @test lbfgs_method.scaleinvH0 == false
+
+        minuit_result = fit(objective, [0.0, 0.0]; backend = MinuitBackend(), step_sizes = [2.0, 3.0])
+        @test minuit_result.converged
+        @test minuit_result.minimizer ≈ [1.0, -2.0] atol = 1e-4
+
+        @test_throws ArgumentError fit(objective, [0.0, 0.0]; backend = OptimBackend(:bfgs), step_sizes = [0.0, 1.0])
+        @test_throws ArgumentError fit(objective, [0.0, 0.0]; backend = MinuitBackend(), step_sizes = [0.0, 1.0])
     end
 
     @testset "Nelder Mead works without covariance" begin

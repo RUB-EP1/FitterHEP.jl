@@ -21,6 +21,38 @@ function _optim_options(; iterations::Integer = 10_000, kwargs...)
     return Optim.Options(; opts...)
 end
 
+function _diagonal_initial_invH(step_sizes::AbstractVector{<:Real})
+    values = Float64.(step_sizes) .^ 2
+    return _ -> Matrix(Diagonal(values))
+end
+
+function _diagonal_hessian_preconditioner(step_sizes::AbstractVector{<:Real})
+    return Diagonal(1 ./ (Float64.(step_sizes) .^ 2))
+end
+
+function _optim_method_with_scales(method, step_sizes::AbstractVector{<:Real})
+    if method isa BFGS && method.initial_invH === nothing
+        return BFGS(
+            method.alphaguess!,
+            method.linesearch!,
+            _diagonal_initial_invH(step_sizes),
+            method.initial_stepnorm,
+            method.manifold,
+        )
+    elseif method isa LBFGS && method.P === nothing
+        return LBFGS(
+            method.m,
+            method.alphaguess!,
+            method.linesearch!,
+            _diagonal_hessian_preconditioner(step_sizes),
+            method.precondprep!,
+            method.manifold,
+            false,
+        )
+    end
+    return method
+end
+
 function _fit(
     backend::OptimBackend,
     objective,
@@ -31,6 +63,7 @@ function _fit(
     bounds = nothing,
     bound_strategy::Symbol = :native,
     covariance = :none,
+    step_sizes = nothing,
     errordef::Real = 0.5,
     inversion::Symbol = :auto,
     g_tol = nothing,
@@ -46,6 +79,9 @@ function _fit(
     adapter = _parameter_adapter(initial)
     x0 = adapter.x0
     problem = _active_parameter_problem(x0; fixed, bounds, bound_strategy)
+    scales = _normalize_step_sizes(step_sizes, x0)
+    active_scales = scales[problem.active]
+    method = _optim_method_with_scales(backend.method, active_scales)
     objective_active(z) = objective(adapter.rebuild(problem.expand(z)))
     options = _optim_options(;
         iterations,
@@ -69,14 +105,14 @@ function _fit(
 
     result = if problem.has_bounds
         if autodiff === nothing
-            optimize(objective_active, problem.zlower, problem.zupper, problem.z0, Fminbox(backend.method), options)
+            optimize(objective_active, problem.zlower, problem.zupper, problem.z0, Fminbox(method), options)
         else
-            optimize(objective_active, problem.zlower, problem.zupper, problem.z0, Fminbox(backend.method), options; autodiff)
+            optimize(objective_active, problem.zlower, problem.zupper, problem.z0, Fminbox(method), options; autodiff)
         end
     elseif autodiff === nothing
-        optimize(objective_active, problem.z0, backend.method, options)
+        optimize(objective_active, problem.z0, method, options)
     else
-        optimize(objective_active, problem.z0, backend.method, options; autodiff)
+        optimize(objective_active, problem.z0, method, options; autodiff)
     end
     zmin = collect(Float64, Optim.minimizer(result))
     xmin = problem.expand(zmin)

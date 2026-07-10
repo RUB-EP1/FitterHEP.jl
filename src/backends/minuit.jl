@@ -11,10 +11,6 @@ function _default_names(n::Integer)
     return ["p$i" for i in 1:n]
 end
 
-function _default_step_sizes(x0::AbstractVector)
-    return [max(0.1 * abs(x), 0.1) for x in x0]
-end
-
 function _normalize_names(names, n::Integer)
     values = names === nothing ? _default_names(n) : collect(names)
     length(values) == n || throw(ArgumentError("names must have length $n"))
@@ -51,7 +47,7 @@ function _fit(
     x0 = adapter.x0
     n = length(x0)
     param_names = _normalize_names(something(names, adapter.names), n)
-    errors0 = something(_normalize_vector_option(step_sizes, n, "step_sizes"), _default_step_sizes(x0))
+    errors0 = _normalize_step_sizes(step_sizes, x0)
     fixed_parameters = _normalize_fixed(fixed, n)
     lower, upper = _normalize_bounds(bounds, n)
     _validate_bounds(x0, lower, upper)
